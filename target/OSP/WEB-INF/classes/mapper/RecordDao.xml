@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.json.osp.dao.RecordDao">
+    <resultMap id="BoughtRecordMap" type="com.json.osp.entity.BoughtRecord">
+        <id column="bought_id" property="boughtId" />
+        <result column="bought_time" property="boughtTime"/>
+        <result column="unit_price" property="unitPrice"/>
+        <result column="count" property="count"/>
+        <association property="product" column="product_id"
+                     javaType="com.json.osp.entity.Product">
+            <id column="product_id" property="productId" />
+            <result column="product_name" property="productName" />
+            <result column="product_desc" property="productDesc" />
+        </association>
+        <association property="user" column="user_id"
+                     javaType="com.json.osp.entity.UserInfo">
+            <id column="user_id" property="userId" />
+            <result column="name" property="name" />
+        </association>
+    </resultMap>
+    <resultMap id="BrowseRecordMap" type="com.json.osp.entity.BrowseRecord">
+        <id column="record_id" property="recordId" />
+        <result column="browse_time" property="browseTime"/>
+        <association property="product" column="product_id"
+                     javaType="com.json.osp.entity.Product">
+            <id column="product_id" property="productId" />
+            <result column="product_name" property="productName" />
+            <result column="product_desc" property="productDesc" />
+            <result column="price" property="price" />
+            <result column="count" property="count" />
+            <result column="product_category_id" property="productCategory.productCategoryId"/>
+        </association>
+        <association property="user" column="user_id"
+                     javaType="com.json.osp.entity.UserInfo">
+            <id column="user_id" property="userId" />
+            <result column="name" property="name" />
+        </association>
+    </resultMap>
+    <insert id="insertBoughtRecord" parameterType="com.json.osp.entity.BoughtRecord"
+                      useGeneratedKeys="true" keyProperty="boughtId" keyColumn="bought_id">
+        insert into
+            tb_bought_record(product_id, user_id, bought_time, unit_price, count)
+        values(#{product.productId}, #{user.userId}, #{boughtTime}, #{unitPrice}, #{count})
+    </insert>
+
+    <insert id="insertBrowseRecord" parameterType="com.json.osp.entity.BrowseRecord"
+            useGeneratedKeys="true" keyProperty="recordId" keyColumn="record_id">
+        insert into
+            tb_browse_record(product_id, user_id, browse_time)
+        values(#{product.productId}, #{user.userId}, #{browseTime})
+    </insert>
+
+    <select id="queryBoughtRecord" resultMap="BoughtRecordMap">
+        select b.bought_id, b.product_id, b.user_id, b.bought_time,
+               b.unit_price, b.count, u.name, p.product_name, p.product_desc
+        from tb_bought_record b, tb_user_info u, tb_product p
+        <where>
+            b.user_id = u.user_id and b.product_id = p.product_id
+            <if test="userId != null"> and b.user_id = #{userId}</if>
+            <if test="productCategoryId != null">
+             and b.product_id in (select p.product_id
+                                from tb_product pp
+                                where pp.product_category_id = #{productCategoryId})
+            </if>
+        </where>
+        order by b.bought_time desc
+    </select>
+
+    <select id="queryBrowseRecord" resultMap="BrowseRecordMap">
+        select b.record_id, b.product_id, b.user_id, b.browse_time,
+        u.name, p.product_name, p.product_desc, p.price, p.count, p.product_category_id
+        from tb_browse_record b, tb_user_info u, tb_product p
+        <where>
+            b.user_id = u.user_id and b.product_id = p.product_id
+            <if test="userId != null"> and b.user_id = #{userId}</if>
+            <if test="productCategoryId != null">
+                and b.product_id in (select p.product_id
+                from tb_product pp
+                where pp.product_category_id = #{productCategoryId})
+            </if>
+        </where>
+        order by b.browse_time desc
+    </select>
+
+    <insert id="insertLog" parameterType="com.json.osp.entity.LoginLogoutInfo"
+            useGeneratedKeys="true" keyProperty="logId" keyColumn="log_id">
+        insert into tb_login_logout_record
+            (user_id, ip, log_type, log_time)
+        values
+            (#{userId}, #{ip}, #{logType}, #{logTime})
+    </insert>
+</mapper>

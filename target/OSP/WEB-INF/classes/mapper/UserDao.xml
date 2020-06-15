@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.json.osp.dao.UserDao">
+    <resultMap id="UserInfoMap" type="com.json.osp.entity.UserInfo">
+        <id column="user_id" property="userId"/>
+        <result column="name" property="name"/>
+        <result column="profile_img" property="profileImg"/>
+        <result column="email" property="email"/>
+        <result column="gender" property="gender"/>
+        <result column="enable_status" property="enableStatus"/>
+        <result column="user_type" property="userType"/>
+        <result column="create_time" property="createTime"/>
+        <result column="last_edit_time" property="lastEditTime"/>
+        <result column="money" property="money"/>
+        <association property="productCategory" column="product_category_id"
+                     javaType="com.json.osp.entity.ProductCategory">
+            <id column="product_category_id" property="productCategoryId" />
+            <result column="product_category_name" property="productCategoryName" />
+        </association>
+    </resultMap>
+    <!--  查询用户信息  -->
+    <select id="queryUserInfo" resultMap="UserInfoMap" parameterType="Long">
+        select
+        u.user_id, u.name, u.profile_img, u.email, u.gender, u.enable_status, u.user_type,
+        u.create_time, u.last_edit_time, u.money, u.product_category_id, p.product_category_name
+        from
+        tb_user_info u
+        LEFT JOIN  tb_product_category p ON u.product_category_id = p.product_category_id
+        where
+        u.user_id = #{userId}
+
+    </select>
+
+    <!--  插入用户信息  -->
+    <!--  这里插入成功之后会将user_id 传给userId  -->
+    <insert id="insertUserInfo" parameterType="com.json.osp.entity.UserInfo"
+            useGeneratedKeys="true" keyProperty="userId" keyColumn="user_id">
+		insert into
+		    tb_user_info(name, profile_img, email, gender, enable_status, user_type,
+		             create_time, last_edit_time, money, product_category_id)
+		values
+		    (#{name}, #{profileImg}, #{email}, #{gender}, #{enableStatus}, #{userType},
+		             #{createTime}, #{lastEditTime}, #{money}, #{productCategory.productCategoryId});
+	</insert>
+
+    <!--  插入本地账号信息  -->
+    <insert id="insertLocalAuth" parameterType="com.json.osp.entity.LocalAuth"
+            useGeneratedKeys="true" keyProperty="localAuthId" keyColumn="local_auth_id">
+		insert into
+		    tb_local_auth(user_id, username, password, create_time, last_edit_time)
+		values
+		    (#{userId}, #{username}, #{password}, #{createTime}, #{lastEditTime});
+	</insert>
+
+    <!--  更新用户信息  -->
+    <update id="updateUserInfo" parameterType="com.json.osp.entity.UserInfo">
+        update tb_user_info
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="profileImg != null">profile_img = #{profileImg},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="enableStatus != null">enable_status = #{enableStatus},</if>
+            <if test="lastEditTime != null">last_edit_time = #{lastEditTime},</if>
+            <if test="money != null">money = #{money},</if>
+            <if test="productCategory != null and productCategory.productCategoryId != null">product_category_id = #{productCategory.productCategoryId},</if>
+        </set>
+        where user_id = #{userId};
+    </update>
+
+    <!--  更新用户账号信息  -->
+    <update id="updateLocalAuth" parameterType="com.json.osp.entity.LocalAuth">
+        update tb_local_auth
+        <set>
+            <if test="username != null">username = #{username},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="lastEditTime != null">last_edit_time = #{lastEditTime},</if>
+        </set>
+        where local_auth_id = #{localAuthId};
+    </update>
+
+    <select id="selectLocalAuth" parameterType="com.json.osp.entity.LocalAuth" resultType="com.json.osp.entity.LocalAuth">
+        select local_auth_id, user_id, username, password, create_time, last_edit_time
+        from tb_local_auth
+        where username = #{username} and password = #{password};
+    </select>
+
+    <select id="selectLocalAuthById" parameterType="Long" resultType="com.json.osp.entity.LocalAuth">
+        select local_auth_id, user_id, username, password, create_time, last_edit_time
+        from tb_local_auth
+        where user_id = #{userId};
+    </select>
+
+    <select id="selectLocalAuthUsername" parameterType="String" resultType="Long">
+        select user_id
+        from tb_local_auth
+        where username = #{username};
+    </select>
+
+    <select id="selectAssistantInfo" resultMap="UserInfoMap">
+        select
+        u.user_id, u.name, u.product_category_id, p.product_category_name
+        from
+        tb_user_info u, tb_product_category p
+        where
+        u.product_category_id is not null and u.product_category_id = p.product_category_id
+        order by u.user_id asc
+    </select>
+
+    <delete id="deleteLocalAuth" parameterType="Long">
+        delete from tb_local_auth
+        where user_id = #{userId};
+    </delete>
+
+    <delete id="deleteUser" parameterType="Long">
+        delete from tb_user_info
+        where user_id = #{userId};
+    </delete>
+
+</mapper>

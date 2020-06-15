@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Administrator</title>
+    <meta http-equiv="Access-Control-Allow-Origin" content="*">
+    <title>main</title>
+    <link href="../css/main.css" rel="stylesheet"/>
+    <script src="../js/vue.min.js"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="../element-ui/index.css">
+    <!-- 引入组件库 -->
+    <script src="../element-ui/index.js"></script>
+    <script src="../element-ui/axios.min.js"></script>
+    <script src="../js/jquery-3.4.1.min.js"></script>
+</head>
+<body>
+<div id="main">
+    <!-- 标题 -->
+    <div class="titlePart">
+        <h1>你好！{{userInfo.productCategory.productCategoryName}}销售人员{{userInfo.name}}</h1>
+    </div>
+    <!-- 导航栏 -->
+    <div class="navigate">
+        <el-menu :default-active="barIndex" class="el-menu-demo" mode="horizontal"
+                 @select="handleSelect" background-color="#545c64" text-color="#fff" active-text-color="#ffd04b">
+            <el-menu-item index="1">浏览记录</el-menu-item>
+            <el-menu-item index="2">购买记录</el-menu-item>
+            <el-menu-item index="3">商品管理</el-menu-item>
+            <el-menu-item index="4">退出登录</el-menu-item>
+        </el-menu>
+    </div>
+    <!-- 浏览记录 -->
+    <div v-if = 'barIndex==1' class="part">
+        <div class="browsedPart">
+            <el-table :data="browseRecordList" border style="width: 100%" empty-text="暂无销售记录" lazy=true  highlight-current-row
+                      max-height="530">
+                <el-table-column prop="browseTime" label="时间" width="160"></el-table-column>
+                <el-table-column prop="product.productName" label="商品名称" width="160"></el-table-column>
+                <el-table-column prop="user.name" label="用户" width="160"></el-table-column>
+                <el-table-column prop="product.productDesc" label="简介" width="200"> </el-table-column>
+                <el-table-column prop="product.enableStatus" label="销售状态" width="120"></el-table-column>
+            </el-table>
+        </div>
+    </div>
+    <!-- 购买记录 -->
+    <div v-if = 'barIndex==2' class="part">
+        <div class="browsedPart">
+            <el-table :data="boughtRecordList" border style="width: 100%" empty-text="暂无销售记录" lazy=true  highlight-current-row
+                      max-height="530">
+                <el-table-column prop="boughtTime" label="时间" width="160"></el-table-column>
+                <el-table-column prop="product.productName" label="商品名称" width="160"></el-table-column>
+                <el-table-column prop="user.name" label="买家" width="160"></el-table-column>
+                <el-table-column prop="product.enableStatus" label="销售状态" width="120"></el-table-column>
+                <el-table-column prop="unitPrice" label="售价/￥" width="140"> </el-table-column>
+                <el-table-column prop="count" label="销售数量/件" width="156"> </el-table-column>
+            </el-table>
+        </div>
+    </div>
+    <!-- 商品管理 -->
+    <div v-if = 'barIndex==3' class="part">
+        <el-button type="text" @click="addNewGoods"><h2 class="shoppingCarh2">新增商品</h2></el-button>
+        <div>
+            <div class="goodsPart" v-for= "(i,index) in productList">
+                <img v-bind:src='i.productImgList[0].imgAddr' class="goodsImg">
+                <div class="goodsPartInfo">
+                    <h2 class="goodsTitle">{{i.productName}}</h2>
+                    <div class="fenge"></div>
+                    <p class="describe1">{{i.productDesc}}</p>
+                    <div class="goodBottom1">
+                        <p class="gMoney1"><strong>售价：￥</strong>{{i.price}}</p>
+                        <p class="reserve1"><strong>余量：</strong>{{i.count}}<strong>&nbsp;件</strong></p>
+                    </div>
+                    <div>
+                        <el-button type="primary" @click="changeGoods(index)">修改信息</el-button>
+                        <el-button type="primary" @click="deleteGoods(index)">下架商品</el-button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 修改/新增商品Dialog -->
+        <div class="goodsCard">
+            <el-dialog  :visible.sync="readMoreJug" class="goodsCardDialog" fullscreen ="true">
+                <h1 v-if='goodsIndex==-1'>新增商品</h1>
+                <h1 v-else>修改商品</h1>
+                <div class="goodsDiglog">
+
+                    <el-form ref="product" :model="product" label-width="80px">
+                        <el-form-item label="商品名">
+                            <el-input v-model="product.productName" placeholder="请输入商品名"></el-input>
+                        </el-form-item>
+                        <el-form-item label="简介">
+                            <el-input v-model="product.productDesc" placeholder="请输入简介"></el-input>
+                        </el-form-item>
+                        <el-form-item label="定价">
+                            <el-input v-model="product.price" placeholder="请输入定价"></el-input>
+                        </el-form-item>
+                        <el-form-item label="数量">
+                            <el-input placeholder="请输入数量" v-model="product.count" ></el-input>
+                        </el-form-item>
+                        <el-form-item v-for="(gParam, index) in product.productIntroduce" :label="'参数' + index" :key="gParam.key" :prop="'productIntroduce.' + index + '.val'">
+                            <el-input v-model="gParam.value" class="elinput"></el-input>
+                            <el-button @click.prevent="removeGParam(gParam)">删除</el-button>
+                        </el-form-item>
+                        <el-form-item v-if="goodsIndex == -1">
+                            <el-upload
+                                    action=""
+                                    list-type="picture-card"
+                                    :on-change="handleChange"
+                                    :on-remove="handleRemove"
+                                    :data="product"
+                                    :auto-upload="false"
+                                    multiple
+                                    :limit="3"
+                                    :file-list="fileList"
+                                    accept="image/jpeg,image/x-png">
+                                <i class="el-icon-plus"></i>
+                            </el-upload>
+                        </el-form-item>
+                        <el-form-item >
+                            <el-button @click="addGParam">新增参数</el-button>
+                            <el-button type="primary" @click="changeGoodsInfo()">上 传</el-button>
+                        </el-form-item>
+                    </el-form>
+                </div>
+            </el-dialog>
+        </div>
+    </div>
+    <!-- 退出登录 -->
+    <div v-if = 'barIndex==4' class="part"></div>
+
+</div>
+<script>
+    var main = new Vue({
+        el:"#main",
+        data(){
+            return {
+                barIndex: 8,
+                browseRecordList: [],
+                boughtRecordList: [],
+                readMoreJug:false,
+                productList:[],
+                fileListCnt:0,
+                fileList:[],
+                product: {
+                    productId : '',
+                    productName : '',
+                    productDesc : '',
+                    price : 0.00,
+                    count : 0,
+                    createTime : '',
+                    lastEditTime : '',
+                    enableStatus: 1,
+                    productIntroduce:[{
+                        value: ''
+                    }],
+                    productImgList : [],
+                    productCategory : {
+                        productCategoryId: 1,
+                        productCategoryName : ""
+                    }
+                },
+                userInfo:null,
+                goodsIndex:-1,
+            }
+        },
+        methods:{
+            isExist(resp) {
+                if(resp.data.exist != null){
+                    this.$message({
+                        message:'登录超时！请重新登录',
+                        type:'error'
+                    })
+                    setTimeout(function(){
+                        window.location.href='/OSP/front/login';
+                    },500)
+                }
+            },
+            // 导航栏选择
+            handleSelect(key, keyPath){
+                var ctx = this
+                console.log(key)
+                // 浏览记录
+                if(key == 1) {
+                    ctx.barIndex = 1
+                    axios.get('/OSP/admin/getBrowseRecordByproductCategory')
+                        .then(function (resp) {
+                            ctx.isExist(resp)
+                            if(resp.data.success == true){
+                                ctx.browseRecordList = resp.data.browseRecordList
+                            }
+                            else {
+                                ctx.$message({
+                                    message:'获取浏览记录失败',
+                                    type:'error'
+                                })
+                            }
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        });
+                }
+                // 购买记录
+                else if(key == 2) {
+                    ctx.barIndex = 2
+
+                    axios.get('/OSP/admin/getBoughtRecordByPcId')
+                        .then(function (resp) {
+                            ctx.isExist(resp)
+                            if(resp.data.success == true) {
+                                ctx.boughtRecordList = resp.data.boughtRecordList
+                            }else {
+                                ctx.$message({
+                                    message:'获取记录失败',
+                                    type:'error'
+                                })
+                            }
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        });
+                }
+                else if(key == 3) { // 商品管理
+                    ctx.barIndex = 3
+
+                    axios.get("/OSP/admin/getProductByProductCategoryId")
+                        .then(function(resp){
+                            ctx.isExist(resp)
+                            if(resp.data.success == true) {
+                                ctx.productList = resp.data.productList
+                            }else {
+                                ctx.$message({
+                                    message:'获取商品信息失败',
+                                    type:'error'
+                                })
+                            }
+                        })
+                }
+                else if(key == 4) { // 退出登录
+                    axios.get('/OSP/user/logout')
+                        .then(function (resp) {
+                            window.location.href='/OSP/front/login';
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        });
+                }
+            },
+            //新增参数
+            addGParam(){
+                this.product.productIntroduce.push({
+                    value: '',
+                    key: 'val'
+                });
+            },
+            // 新增商品按钮控制
+            addNewGoods(){
+                var ctx = this
+                ctx.goodsIndex = -1
+                ctx.product = {
+                    productId : '',
+                    productName : '',
+                    productDesc : '',
+                    price : 0.00,
+                    count : 0,
+                    createTime : '',
+                    lastEditTime : '',
+                    productIntroduce:[{val:''}],
+                    enableStatus: 1,
+                    productImgList : [],
+                    productCategory : {
+                        productCategoryName : ctx.userInfo.productCategory.productCategoryName,
+                        productCategoryId : ctx.userInfo.productCategory.productCategoryId
+                    }
+                }
+                ctx.readMoreJug= true
+            },
+            // 新增/修改商品
+            changeGoodsInfo(){
+                var ctx = this
+                var introduce = ""
+                var curUrl = ""
+                if(ctx.goodsIndex == -1)
+                    curUrl = '/OSP/shop/addProduct'
+                else
+                    curUrl = '/OSP/shop/modifyProduct'
+
+                for(var i = 0; i < ctx.product.productIntroduce.length; i ++){
+                    introduce += ctx.product.productIntroduce[i].value
+                    if(i < ctx.product.productIntroduce.length - 1)
+                        introduce += '|'
+                }
+                ctx.product.productIntroduce = introduce
+                let product = JSON.stringify(ctx.product)
+
+                let formData = new FormData()
+                console.log(this.fileList.length)
+                if (this.fileList.length > 0) {
+                    this.fileList.forEach (file => {
+                        formData.append('files', file.raw)
+                    })
+                }
+                formData.append('product', product)
+                axios({
+                    method: 'post',
+                    url: curUrl ,
+                    headers: {
+                        'Content-Type': 'multipart/form-data;'
+                    },
+                    data : formData
+                }).then (function (resp) {
+                    ctx.isExist(resp)
+                    if(resp.data.success == true) {
+                        ctx.readMoreJug = false
+                        ctx.product.productIntroduce =[{val:''}]
+                        let msg = ""
+                        if(ctx.goodsIndex == -1)
+                            msg = "添加成功"
+                        else
+                            msg = "修改成功"
+                            ctx.$message({
+                                message: msg,
+                                type: 'success',
+                            })
+                        axios.get("/OSP/admin/getProductByProductCategoryId")
+                            .then(function(resp){
+                                ctx.isExist(resp)
+                                if(resp.data.success == true) {
+                                    ctx.productList = resp.data.productList
+                                }else {
+                                    ctx.$message({
+                                        message:'获取商品信息失败',
+                                        type:'error'
+                                    })
+                                }
+                            })
+                    }else {
+                        ctx.$message({
+                            message: '操作失败',
+                            type: 'error',
+                        })
+                    }
+
+
+                }).catch(function(error) {
+                    console.log('in BubbleBox.submitUpload(), catch $axios error: ' + error)
+                })
+
+
+            },
+            //修改商品控制按钮
+            changeGoods(goodsNo){
+                var ctx = this
+                ctx.goodsIndex = goodsNo
+                if(ctx.goodsIndex != -1){
+                    ctx.product = ctx.productList[ctx.goodsIndex]
+                    var p = ctx.product.productIntroduce.split('|')
+                    var gParams = []
+                    for(var i=0;i<p.length;i++){
+                        gParams.push({
+                            value: p[i],
+                            key: 'val'
+                        });
+                    }
+                    ctx.product.productIntroduce = gParams
+                }
+                ctx.readMoreJug= true
+
+            },
+            deleteGoods(goodsNo) {
+                var ctx = this
+                ctx.goodsIndex = goodsNo
+                ctx.productList[ctx.goodsIndex].enableStatus = 0
+                let product = JSON.stringify(ctx.productList[ctx.goodsIndex])
+                let formData = new FormData()
+                formData.append('product', product)
+                axios({
+                    method: 'post',
+                    url: '/OSP/shop/modifyProduct' ,
+                    headers: {
+                        'Content-Type': 'multipart/form-data;'
+                    },
+                    data : formData
+                }).then (function (res) {
+                    ctx.isExist(res)
+                    if (res.data.success == true) {
+                        ctx.$message({
+                            message: "下架成功",
+                            type: 'success',
+                        })
+                        axios.get("/OSP/admin/getProductByProductCategoryId")
+                            .then(function (resp) {
+                                ctx.isExist(resp)
+                                if (resp.data.success == true) {
+                                    ctx.productList = resp.data.productList
+                                } else {
+                                    ctx.$message({
+                                        message: '获取商品信息失败',
+                                        type: 'error'
+                                    })
+                                }
+                            })
+                    } else {
+                        ctx.$message({
+                            message: '操作失败',
+                            type: 'error',
+                        })
+                    }
+                })
+            },
+            //删除参数
+            removeGParam(item){
+                var index = this.product.productIntroduce.indexOf(item)
+                if (index !== -1) {
+                    this.product.productIntroduce.splice(index, 1)
+                }
+            },
+            handleChange(file, fileList){
+                var limit = this.$limitFile(file)
+                if(limit === 0) {  // 新上传的文件符合要求
+                    this.fileList = fileList
+                    // this.fileListCnt = this.fileList.length
+                } else {
+                    if(limit === 1)
+                        this.$message.error('上传图片只能是 JPG 或 PNG 格式!')
+                    else if(limit === 2)
+                        this.$message.error('上传图片大小不能超过 2MB!')
+                    console.log('fileList.length: ' + fileList.length)
+                    fileList.pop()  // 阻止上传
+                }
+                console.log('' + typeof fileList[0] + '| this.fileListCnt: ' + this.fileListCnt)
+            },
+            handleRemove(file, fileList){
+                this.fileList = fileList
+                this.fileListCnt = this.fileList.length
+                console.log('this.fileListCnt: ' + this.fileListCnt)
+            }
+        },
+        watch: {
+            fileListCnt: function (val, oldVal) {
+                if(val >= 2) {
+                    // 图片上传数量 >= 3时，不允许继续上传
+                    var e = $(".el-upload--picture-card")
+                    e.css('display','none')
+                    // console.log(val +': ' + e.attr("class"))
+                } else {
+                    var e = $(".el-upload--picture-card")
+                    e.css('display','inline-block')
+                    // console.log(val +': ' + e.attr("class"))
+                }
+            }
+        },
+        mounted: function() {
+            var ctx = this
+            axios.get('/OSP/user/getUserInfo')
+                .then(function (resp) {
+                    if(resp.data.success == true)
+                    ctx.userInfo = resp.data.userInfo
+                    else {
+                        ctx.$message({
+                            message : "获取用户信息失败,请重新登录",
+                            type : "error"
+                        })
+                        setTimeout(function(){
+                                    window.location.href='/OSP/front/login';
+                                },500)
+                    }
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+        },
+    })
+    Vue.prototype.$limitFile = function (file) {
+        var type = file.name.substring(file.name.lastIndexOf('.') + 1)
+        const isJPNG = (type === 'jpg' || type === 'jpeg' || type === 'png')
+        const isLt2M = file.size / 1024 / 1024 < 2
+        if (!isJPNG) {
+            // this.$message.error('上传图片只能是 JPG 或 PNG 格式!')
+            return 1
+        }
+        if (!isLt2M) {
+            // this.$message.error('上传图片大小不能超过 2MB!')
+            return 2
+        }
+        // return isJPNG && isLt2M
+        return 0
+    }
+</script>
+</body>
+</html>

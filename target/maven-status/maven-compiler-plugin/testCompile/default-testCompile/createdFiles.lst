@@ -1,0 +1,7 @@
+com\json\osp\BaseTest.class
+com\json\osp\dao\ProductDaoTest.class
+com\json\osp\dao\UserInfoDaoTest.class
+com\json\osp\dao\RecordDaoTest.class
+com\json\osp\service\AdminServiceTest.class
+com\json\osp\service\UserInfoServiceTest.class
+com\json\osp\service\ProductServiceTest.class

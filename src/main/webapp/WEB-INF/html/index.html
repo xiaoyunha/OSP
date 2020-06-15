@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Access-Control-Allow-Origin" content="*">
+		<title>OSP</title>
+        <link href="../css/index.css" rel="stylesheet"/>
+        <script src="../js/vue.min.js"></script>
+        <!-- 引入样式 -->
+        <link rel="stylesheet" href="../element-ui/index.css">
+        <!-- 引入组件库 -->
+        <script src="../element-ui/axios.min.js"></script>
+        <script src="../element-ui/index.js"></script>
+    </head>
+    <body>
+        <div id="main">
+            <!-- 标题部分 -->
+            <div>
+                <div>
+                    <!-- 图标 -->
+                </div>
+                <div class="headd">
+                    <img src="../icon.png" class="icon">
+                    <div class="title">
+                        <h2>JSon商城</h2>
+                        <p>让每个人享受JSon的乐趣</p>
+                    </div>     
+                </div>           
+            </div>
+            <!-- 登录部分 -->
+            <div id="login">
+                <div id="sublogin">
+                    <div>
+                        <el-button type="text" v-on:click="loginHandle" class="switch">登录</el-button>
+                        <el-button type="text" v-on:click="registerHandle" class="switch">注册</el-button>
+                    </div>
+                    <!-- 登录模块 -->
+                    <div id="login-part" v-if="this.switch">
+                        <el-form ref="form" :model="loginForm" label-width="80px">
+                            <el-form-item label="账号">
+                                <el-input placeholder="请输入账号" v-model="loginForm.localAuth.username"></el-input>
+                            </el-form-item>
+                            <el-form-item label="密码">
+                                <el-input placeholder="请输入密码" v-model="loginForm.localAuth.password" show-password></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" v-on:click="SubmitLoginForm">登录</el-button>
+                                <el-button type="primary" v-on:click="visitorLogin">游客访问</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                    <!-- 注册模块 -->
+                    <div id="register-part"  v-else>
+                        <el-form ref="reForm" :model="reForm" label-width="80px">
+                            <el-form-item label="账号">
+                                <el-input v-model="reForm.localAuth.username" placeholder="请输入账号"></el-input>
+                            </el-form-item>
+                            <el-form-item label="用户名">
+                                <el-input v-model="reForm.userInfo.name" placeholder="请输入用户名"></el-input>
+                            </el-form-item>
+                            <el-form-item label="性别" >
+                                <el-input v-model="reForm.userInfo.gender" placeholder="请输入性别"></el-input>
+                            </el-form-item>
+                            <el-form-item label="邮箱">
+                                <el-input v-model="reForm.userInfo.email" placeholder="请输入邮箱"></el-input>
+                            </el-form-item>
+                            <el-form-item label="密码">
+                                <el-input placeholder="请输入密码" v-model="reForm.localAuth.password" show-password></el-input>
+                            </el-form-item>
+
+                            <el-form-item>
+                                    <el-button type="primary" v-on:click="SubmitRegisterForm">注册</el-button>  
+                            </el-form-item>   
+                        </el-form>
+                    </div>
+                </div>
+                            
+            </div>
+        </div>     
+        <script>
+            var main = new Vue({
+                el: "#main",
+                data(){
+                    return{
+                        loginForm:{
+                            localAuth:{
+                                localAuthId : null,
+                                userId : null,
+                                username : null,
+                                password : null,
+                                createTime : null,
+                                lastEditTime : null
+                            },
+                        },
+                        reForm:{
+                            userInfo:{
+                                userId : null,
+                                name : null,
+                                profileImg : null,
+                                email  : null,
+                                gender : null,
+                                enableStatus :  1, // 默认允许使用
+                                userType : 1, // 用户
+                                createTime :  null,
+                                lastEditTime : null,
+                                money : 0.00
+                            },
+                            localAuth:{
+                                localAuthId : null,
+                                userId : null,
+                                username : null,
+                                password : null,
+                                createTime : null,
+                                lastEditTime : null
+                            },
+                        },
+                        switch:true,// 登录true 注册false
+                        // info: null
+                    }
+                },
+                methods:{
+                    loginHandle:function(){
+                        main.switch = true
+                    },
+                    registerHandle:function(){
+                        main.switch = false
+                    },
+                    //登录
+                    SubmitLoginForm:function(){
+                        var ctx = this
+                        var params = new URLSearchParams({
+                            localAuth : JSON.stringify(ctx.loginForm.localAuth)
+                        })
+                        axios.post('/OSP/user/login', params)
+                            .then(function (resp) {
+                                //登录成功
+                                if(resp.data.success == true) {
+                                    if (resp.data.userInfo.userType == 1)
+                                        window.location.href='/OSP/front/main'
+                                    else if (resp.data.userInfo.userType == 0)
+                                        window.location.href='/OSP/front/admin'
+                                    else
+                                        window.location.href='/OSP/front/assistant'
+                                }
+                                // 登录失败
+                                else {
+                                    ctx.loginForm.localAuth.username = ""
+                                    ctx.loginForm.localAuth.password = ""
+                                    ctx.$message({
+                                        message: resp.data.errMsg,
+                                        type:'error'
+                                    })
+                                }
+                            })
+                            .catch(function (error) {
+                                console.log(error);
+                            });
+                        // console.log(this.info)
+                    },
+                    visitorLogin : function() {
+                        window.location.href='/OSP/front/main'
+                    },
+
+                    SubmitRegisterForm:function(){
+                        var ctx = this
+                        if(ctx.reForm.localAuth.username === ''){
+                            ctx.$message.error("账号不能为空！")
+                            return
+                        }  
+                        if(ctx.reForm.userInfo.email === ''){
+                            ctx.$message.error("邮箱不能为空！")
+                            return
+                        }
+                        var reg = /^([a-zA-Z]|[0-9])(\w|\-)+@[a-zA-Z0-9]+\.([a-zA-Z]{2,4})$/
+                        if(!reg.test(ctx.reForm.userInfo.email)){
+                            ctx.$message.error("邮箱格式错误！")
+                            ctx.reForm.userInfo.email = ""
+                            return
+                        }
+                        if(ctx.reForm.localAuth.password === ''){
+                            ctx.$message.error("密码不能为空！")
+                            return
+                        }
+                        if(!(ctx.reForm.userInfo.gender === "男" || ctx.reForm.userInfo.gende === "女")){
+                            ctx.$message.error("请输入正确的性别!")
+                            ctx.reForm.userInfo.gender = ""
+                            return
+                        }
+                        if(ctx.reForm.userInfo.name === ''){
+                            ctx.$message.error("用户名不能为空")
+                            return
+                        }   
+                        var params = new URLSearchParams({
+                            // userInfo : ctx.reForm.userInfo,
+                            // localAuth : ctx.reForm.localAuth
+                            userInfo : JSON.stringify(ctx.reForm.userInfo),
+                            localAuth : JSON.stringify(ctx.reForm.localAuth)
+                        })
+                        axios.post('/OSP/user/register', params)
+                            .then(function (resp) {
+                                //注册失败
+                                if(resp.data.success == 0){
+                                    ctx.$message({
+                                        message:'账号已存在！',
+                                        type:'error'
+                                    })  
+                                    ctx.reForm.localAuth.username = ''
+                                }
+                                else if(resp.data.success == 1){
+                                    ctx.$message({
+                                        message:'注册成功!',
+                                        type:'success'
+                                    });
+                                    ctx.switch = true
+                                    ctx.loginForm.localAuth.username = ctx.reForm.localAuth.username
+                                } 
+                                else{
+                                    ctx.$message({
+                                        message:'注册失败!请重新尝试',
+                                        type:'error'
+                                    });
+                                }                       
+                            })
+                            .catch(function (error) {
+                                console.log(error);
+                            });
+                    }
+                }
+      
+            })               
+        </script>
+    </body>
+</html>
